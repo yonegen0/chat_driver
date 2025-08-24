@@ -19,7 +19,7 @@ def create_app():
 
     import api
     # blueprintをアプリケーションに登録
-    app.register_blueprint(api.todo_app)
+    app.register_blueprint(api.chat_app)
     return app
 
 # インスタンス作成
