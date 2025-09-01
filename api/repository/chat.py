@@ -13,7 +13,7 @@ def get_rooms():
     """
     try:
         # データベースから全てのルームを取得
-        rooms = Room.query.all()
+        rooms = Room.query.order_by(Room.id).all()
         
         # ルームのリストをJSON形式に変換
         rooms_list = [{'id': room.id, 'name': room.name} for room in rooms]
@@ -22,6 +22,31 @@ def get_rooms():
 
     except Exception as e:
         return jsonify({'error': f'ルームの取得中にエラーが発生しました: {str(e)}'}), 500
+
+@app.route('/rooms/<int:room_id>', methods=['DELETE'])
+def delete_room(room_id):
+    """
+    指定されたIDのルームを削除するAPIエンドポイント。
+    """
+    try:
+        room = Room.query.get(room_id)
+        
+        # ルームが存在しない場合はエラー
+        if not room:
+            return jsonify({'error': '指定されたルームは見つかりませんでした。'}), 404
+        
+        # 「General」ルームは削除できないようにする
+        if room.name == 'General':
+            return jsonify({'error': '「General」ルームは削除できません。'}), 403
+
+        external.db.session.delete(room)
+        external.db.session.commit()
+        
+        return jsonify({'message': 'ルームが正常に削除されました。'}), 200
+
+    except Exception as e:
+        external.db.session.rollback()
+        return jsonify({'error': f'サーバーでエラーが発生しました: {str(e)}'}), 500
 
 @app.route('/addRooms', methods=['POST'])
 def create_room():
