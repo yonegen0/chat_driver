@@ -6,6 +6,44 @@ from api.models.chat import User, Room
 # Blueprintを定義
 app = Blueprint('chat_api', __name__)
 
+@app.route('/users/<string:user_id>', methods=['GET'])
+def get_user(user_id):
+    """
+    指定されたIDのユーザー情報を取得するAPIエンドポイント。
+    """
+    try:
+        user = User.query.filter_by(id=user_id).first()
+        if not user:
+            return jsonify({'error': 'ユーザーが見つかりませんでした。'}), 404
+        return jsonify({'id': user.id, 'name': user.name}), 200
+    except Exception as e:
+        return jsonify({'error': f'ユーザー情報の取得中にエラーが発生しました: {str(e)}'}), 500
+
+@app.route('/users', methods=['POST'])
+def create_user():
+    """
+    新しいユーザーを作成するAPIエンドポイント。
+    """
+    try:
+        data = request.get_json()
+        user_id = data.get('id')
+        user_name = data.get('name')
+
+        if not user_id or not user_name:
+            return jsonify({'error': 'IDとユーザー名は必須です。'}), 400
+
+        new_user = User(id=user_id, name=user_name)
+        external.db.session.add(new_user)
+        external.db.session.commit()
+        
+        return jsonify({'message': 'ユーザーが正常に作成されました。', 'name': new_user.name}), 201
+    except IntegrityError:
+        external.db.session.rollback()
+        return jsonify({'error': 'このIDはすでに存在します。'}), 409
+    except Exception as e:
+        external.db.session.rollback()
+        return jsonify({'error': f'サーバーでエラーが発生しました: {str(e)}'}), 500
+
 @app.route('/rooms', methods=['GET'])
 def get_rooms():
     """
